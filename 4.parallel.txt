@@ -1,0 +1,49 @@
+Using Parallel Workflows in LangGraph
+=====================================
+
+In LangGraph, a parallel workflow allows multiple branches of execution to run concurrently
+after a shared parent node, with optional synchronization (join) before continuing.
+
+✅ How to Use:
+
+1. Define the shared parent node  
+   This is the node after which parallel branches begin execution.
+
+2. Add multiple outgoing edges from the parent to each parallel node:
+
+   builder.add_edge("A", "B")
+   builder.add_edge("A", "C")
+
+3. Add a join node (optional) if you want to merge results from the parallel branches:
+
+   builder.add_edge("B", "D")
+   builder.add_edge("C", "D")
+
+4. Ensure the state carries all necessary outputs from parallel branches for the join node to use.
+
+⚠️ Important for Parallel Execution:
+
+In parallel workflows, **each node must return only the part of the state it modifies**, not the entire state.
+This prevents overwrite conflicts when the outputs from parallel branches are merged.
+
+Example:
+If node B computes `b_output` and node C computes `c_output`, return only:
+
+   return {"b_output": result}  # from node B
+   return {"c_output": result}  # from node C
+
+Avoid returning the full state like:
+
+   return state  # ❌ This can cause conflicts when merging.
+
+🟰 What Remains the Same as Sequential:
+
+- Node definitions (e.g., using LangChain tools or custom functions)
+- State management and updates
+- Executor configuration and graph building
+- Entry point specification and graph execution
+
+🔄 Execution Behavior:
+
+- Nodes connected from the same parent run in parallel.
+- A downstream node with multiple parents (e.g., D) waits for all incoming branches to complete.
